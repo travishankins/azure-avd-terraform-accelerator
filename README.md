@@ -1,6 +1,23 @@
 # Azure Virtual Desktop (AVD) - Complete Environment Deployment
 
-This Terraform project deploys a complete Azure Virtual Desktop environment using a modular architecture following Azure best practices. The infrastructure is organized into logical modules for better maintainability, reusability, and management.
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Ftravishankins%2Fazure-avd-terraform-accelerator%2Fmain%2Fazuredeploy.json/createUIDefinitionUri/https%3A%2F%2Fraw.githubusercontent.com%2Ftravishankins%2Fazure-avd-terraform-accelerator%2Fmain%2FcreateUiDefinition.json)
+
+This project deploys a complete Azure Virtual Desktop environment using a modular architecture following Azure best practices. The infrastructure is organized into logical modules for better maintainability, reusability, and management.
+
+## 🚀 Quick Start
+
+### Option 1: Deploy via Azure Portal (Recommended for Quick Start)
+Click the **Deploy to Azure** button above to launch the deployment wizard in Azure Portal. The wizard will guide you through:
+- Basic configuration (resource prefix, location, environment)
+- Identity settings (Azure AD or Domain Services join)
+- Network configuration (new or existing VNet)
+- Session host settings (VM size, count, image)
+- Host pool configuration (type, load balancing, RDP properties)
+- **Production features** (Backup, Image Gallery, Azure Policy) - Optional
+- Tags and metadata
+
+### Option 2: Deploy via Terraform (Advanced Users)
+Clone this repository and customize the deployment using Terraform for full control over all settings.
 
 ## 🏗️ Architecture Overview
 
