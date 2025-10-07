@@ -1,0 +1,182 @@
+# Example Terraform Variables File for AVD Environment
+# Copy this file to terraform.tfvars and customize the values for your environment
+
+# Basic Configuration
+resource_prefix = "contoso"
+location        = "East US"
+environment     = "dev"
+
+# Tags
+tags = {
+  Owner        = "IT Department"
+  CostCenter   = "12345"
+  Application  = "Azure Virtual Desktop"
+  Project      = "AVD Migration"
+  BusinessUnit = "Finance"
+}
+
+# Network Configuration
+vnet_address_space       = ["10.0.0.0/16"]
+subnet_address_prefixes  = ["10.0.1.0/24"]
+corporate_network_cidr   = "203.0.113.0/24"  # Replace with your corporate network CIDR
+
+# Existing Network Configuration (Optional - set to true to use existing infrastructure)
+use_existing_vnet        = false  # Set to true to use an existing VNet
+# existing_vnet_name      = "my-existing-vnet"  # Uncomment and set if using existing VNet
+# existing_vnet_resource_group = "my-network-rg"  # Uncomment and set if using existing VNet
+
+create_new_subnet        = true   # Set to false to use an existing subnet
+# existing_subnet_name    = "my-existing-subnet"  # Uncomment and set if using existing subnet
+
+# ========================================
+# Identity and Domain Join Configuration
+# ========================================
+# Choose between Azure AD Join (cloud-native) or Domain Services Join (traditional AD)
+
+# OPTION 1: Azure AD Join (Recommended - Cloud-Native)
+domain_join_option = "AzureAD"
+# Users will sign in with Azure AD credentials (user@domain.com)
+# Benefits: Conditional Access, Windows Hello, Self-service password reset, no on-premises infrastructure
+# No additional configuration required for Azure AD join
+
+# OPTION 2: Active Directory Domain Services Join (Traditional AD)
+# Uncomment and configure the following variables if using Domain Services join:
+# domain_join_option     = "DomainServices"
+# domain_fqdn            = "contoso.com"                    # Your domain FQDN
+# domain_join_username   = "domainadmin"                    # Domain account with join permissions (without domain prefix)
+# domain_join_password   = "SecurePassword123!"             # Domain join account password (consider using environment variable)
+# domain_ou_path         = "OU=AVD,DC=contoso,DC=com"       # Optional: OU path for computer accounts
+
+# IMPORTANT for Domain Services Join:
+# - Ensure network connectivity between AVD VNet and domain controllers
+# - Configure VNet DNS to point to domain controllers
+# - Domain join account needs permissions to join computers to the domain
+# - Consider using existing VNet with DC connectivity:
+#   use_existing_vnet = true
+#   existing_vnet_name = "hub-vnet"
+#   create_new_subnet = false
+#   existing_subnet_name = "avd-subnet"
+
+# AVD Host Pool Configuration
+host_pool_type                     = "Pooled"
+host_pool_load_balancer_type      = "BreadthFirst"
+host_pool_maximum_sessions_allowed = 5
+host_pool_start_vm_on_connect     = true
+host_pool_validate_environment    = false
+
+# Session Host Configuration
+session_host_count = 3
+vm_sku_size        = "Standard_D4s_v5"
+vm_admin_username  = "avdadmin"
+# vm_admin_password = "YourSecurePassword123!"  # Optional - will be auto-generated if not provided
+os_disk_size_gb    = 128
+availability_zones = ["1", "2", "3"]
+
+# Auto-shutdown Configuration
+enable_auto_shutdown   = true
+auto_shutdown_timezone = "Eastern Standard Time"
+auto_shutdown_time     = "1900"
+
+# Storage Configuration
+fslogix_storage_quota_gb = 2048
+storage_account_tier     = "Premium"
+storage_account_replication_type = "LRS"
+storage_account_kind     = "FileStorage"
+
+# Log Analytics Configuration
+log_analytics_sku            = "PerGB2018"
+log_analytics_retention_days = 90
+
+# Monitoring and Alerting
+enable_monitoring           = true
+enable_update_management    = true
+enable_security_center      = true
+enable_application_insights = false
+enable_metric_alerts        = true
+notification_emails         = ["admin@yourcompany.com"]
+cpu_alert_threshold         = 80
+memory_alert_threshold_bytes = 1073741824  # 1GB
+
+# Key Vault Configuration
+key_vault_sku_name                         = "standard"
+key_vault_enabled_for_deployment           = true
+key_vault_enabled_for_disk_encryption      = true
+key_vault_enabled_for_template_deployment  = true
+key_vault_soft_delete_retention_days       = 7
+key_vault_purge_protection_enabled         = false
+key_vault_network_acls_default_action      = "Allow"
+
+# Application Group Configuration
+create_desktop_application_group    = true
+create_remote_app_application_group = false
+
+# Advanced Configuration
+enable_accelerated_networking = true
+enable_ip_forwarding         = false
+domain_join_option          = "AzureAD"
+enable_dependency_agent     = false
+
+# Custom RDP Properties
+custom_rdp_properties = "audiocapturemode:i:1;audiomode:i:0;drivestoredirect:s:*;redirectclipboard:i:1;redirectcomports:i:1;redirectprinters:i:1;redirectsmartcards:i:1;screen mode id:i:2;smart sizing:i:1"
+
+# Scaling Plan (optional)
+enable_scaling_plan = false
+scaling_plan_time_zone = "Eastern Standard Time"
+
+# Example scaling plan schedule (uncomment and customize if needed)
+# scaling_plan_schedules = [
+#   {
+#     name                                 = "weekdays"
+#     days_of_week                        = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+#     ramp_up_start_time                  = "07:00"
+#     ramp_up_load_balancing_algorithm    = "BreadthFirst"
+#     ramp_up_minimum_hosts_percent       = 20
+#     ramp_up_capacity_threshold_percent  = 60
+#     peak_start_time                     = "09:00"
+#     peak_load_balancing_algorithm       = "BreadthFirst"
+#     ramp_down_start_time                = "17:00"
+#     ramp_down_load_balancing_algorithm  = "DepthFirst"
+#     ramp_down_minimum_hosts_percent     = 10
+#     ramp_down_capacity_threshold_percent = 90
+#     ramp_down_force_logoff_users        = false
+#     ramp_down_stop_hosts_when           = "ZeroSessions"
+#     ramp_down_wait_time_minutes         = 30
+#     ramp_down_notification_message      = "You will be logged off in 30 min. Make sure to save your work."
+#     off_peak_start_time                 = "19:00"
+#     off_peak_load_balancing_algorithm   = "DepthFirst"
+#   }
+# ]
+
+# Data Disk Configuration (optional)
+enable_data_disk                = false
+data_disk_size_gb              = 256
+data_disk_storage_account_type = "Premium_LRS"
+data_disk_caching              = "ReadWrite"
+
+# Domain Join Configuration (for DomainServices option)
+# domain_name          = "contoso.local"
+# domain_ou_path       = "OU=AVD,DC=contoso,DC=local"
+# domain_join_username = "domainadmin@contoso.local"
+# domain_join_password = "YourDomainPassword!"
+
+# Private Endpoint Configuration (for enhanced security)
+storage_enable_private_endpoint = false
+
+# Custom Script Extension (optional)
+enable_custom_script = false
+# custom_script_file_uris = ["https://yourstorageaccount.blob.core.windows.net/scripts/setup.ps1"]
+# custom_script_command = "powershell -ExecutionPolicy Unrestricted -File setup.ps1"
+
+# Remote Applications (for RemoteApp groups)
+# remote_applications = {
+#   "notepad" = {
+#     friendly_name                = "Notepad"
+#     description                  = "Simple text editor"
+#     path                        = "C:\\Windows\\System32\\notepad.exe"
+#     command_line_argument_policy = "DoNotAllow"
+#     command_line_arguments      = ""
+#     show_in_portal              = true
+#     icon_path                   = "C:\\Windows\\System32\\notepad.exe"
+#     icon_index                  = 0
+#   }
+# }

@@ -1,0 +1,497 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "basics": [
+      {
+        "name": "resourcePrefix",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Resource Prefix",
+        "defaultValue": "avd",
+        "toolTip": "Prefix for all Azure resources (max 10 characters, alphanumeric only)",
+        "constraints": {
+          "required": true,
+          "regex": "^[a-zA-Z0-9]{1,10}$",
+          "validationMessage": "Resource prefix must be 1-10 alphanumeric characters"
+        }
+      },
+      {
+        "name": "environment",
+        "type": "Microsoft.Common.DropDown",
+        "label": "Environment",
+        "defaultValue": "Development",
+        "toolTip": "Select the environment type for this deployment",
+        "constraints": {
+          "required": true,
+          "allowedValues": [
+            {
+              "label": "Development",
+              "value": "dev"
+            },
+            {
+              "label": "Test",
+              "value": "test"
+            },
+            {
+              "label": "Production",
+              "value": "prod"
+            }
+          ]
+        }
+      }
+    ],
+    "steps": [
+      {
+        "name": "identityConfig",
+        "label": "Identity Configuration",
+        "elements": [
+          {
+            "name": "identityInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": true,
+            "options": {
+              "icon": "Info",
+              "text": "Choose how session hosts will join to your identity provider. Azure AD Join (recommended) is cloud-native and requires Azure AD. Domain Services Join requires Active Directory Domain Services (AD DS)."
+            }
+          },
+          {
+            "name": "domainJoinOption",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Identity Join Type",
+            "defaultValue": "Azure AD Join (Recommended)",
+            "toolTip": "Select the identity join method for session hosts",
+            "constraints": {
+              "required": true,
+              "allowedValues": [
+                {
+                  "label": "Azure AD Join (Recommended)",
+                  "value": "AzureAD"
+                },
+                {
+                  "label": "Active Directory Domain Services Join",
+                  "value": "DomainServices"
+                }
+              ]
+            }
+          },
+          {
+            "name": "domainServicesSection",
+            "type": "Microsoft.Common.Section",
+            "label": "Domain Services Configuration",
+            "visible": "[equals(steps('identityConfig').domainJoinOption, 'DomainServices')]",
+            "elements": [
+              {
+                "name": "domainWarning",
+                "type": "Microsoft.Common.InfoBox",
+                "visible": true,
+                "options": {
+                  "icon": "Warning",
+                  "text": "Domain Services join requires: 1) Network connectivity to domain controllers, 2) A domain join account with permissions, 3) DNS configured to resolve domain names. Ensure your VNet can reach the domain controllers."
+                }
+              },
+              {
+                "name": "domainFqdn",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Domain FQDN",
+                "placeholder": "contoso.com",
+                "toolTip": "Fully qualified domain name (e.g., contoso.com)",
+                "constraints": {
+                  "required": true,
+                  "regex": "^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$",
+                  "validationMessage": "Must be a valid FQDN (e.g., contoso.com)"
+                }
+              },
+              {
+                "name": "domainJoinUsername",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Domain Join Account Username",
+                "placeholder": "domainadmin",
+                "toolTip": "Username of account with domain join permissions (without domain prefix)",
+                "constraints": {
+                  "required": true,
+                  "regex": "^[a-zA-Z][a-zA-Z0-9._-]{2,19}$",
+                  "validationMessage": "Username must be 3-20 characters, start with a letter"
+                }
+              },
+              {
+                "name": "domainJoinPassword",
+                "type": "Microsoft.Common.PasswordBox",
+                "label": {
+                  "password": "Domain Join Account Password",
+                  "confirmPassword": "Confirm Password"
+                },
+                "toolTip": "Password for the domain join account",
+                "constraints": {
+                  "required": true,
+                  "regex": "^.{8,}$",
+                  "validationMessage": "Password must be at least 8 characters"
+                },
+                "options": {
+                  "hideConfirmation": false
+                }
+              },
+              {
+                "name": "ouPath",
+                "type": "Microsoft.Common.TextBox",
+                "label": "OU Path (Optional)",
+                "placeholder": "OU=AVD,DC=contoso,DC=com",
+                "toolTip": "Optional: Organizational Unit path where computer accounts will be created",
+                "constraints": {
+                  "required": false,
+                  "regex": "^(OU=.+)?(,?DC=.+)*$",
+                  "validationMessage": "Must be a valid OU path (e.g., OU=AVD,DC=contoso,DC=com) or leave empty"
+                }
+              }
+            ]
+          },
+          {
+            "name": "azureADSection",
+            "type": "Microsoft.Common.Section",
+            "label": "Azure AD Join Information",
+            "visible": "[equals(steps('identityConfig').domainJoinOption, 'AzureAD')]",
+            "elements": [
+              {
+                "name": "azureADInfo",
+                "type": "Microsoft.Common.InfoBox",
+                "visible": true,
+                "options": {
+                  "icon": "Info",
+                  "text": "Azure AD Join Benefits: ✓ Cloud-native identity, ✓ Conditional Access support, ✓ Windows Hello for Business, ✓ Self-service password reset, ✓ No on-premises infrastructure required. Users will sign in with their Azure AD credentials (user@domain.com)."
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "networkConfig",
+        "label": "Network Configuration",
+        "elements": [
+          {
+            "name": "networkInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": true,
+            "options": {
+              "icon": "Info",
+              "text": "Choose whether to create a new virtual network or use an existing one. You can also choose to create a new subnet in an existing VNet."
+            }
+          },
+          {
+            "name": "domainNetworkWarning",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": "[equals(steps('identityConfig').domainJoinOption, 'DomainServices')]",
+            "options": {
+              "icon": "Warning",
+              "text": "For Domain Services join, ensure the VNet has network connectivity to your domain controllers and DNS is configured to resolve your domain."
+            }
+          },
+          {
+            "name": "useExistingVnet",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Virtual Network",
+            "defaultValue": "Create new VNet",
+            "toolTip": "Choose to create a new virtual network or use an existing one",
+            "constraints": {
+              "required": true,
+              "allowedValues": [
+                {
+                  "label": "Create new VNet",
+                  "value": false
+                },
+                {
+                  "label": "Use existing VNet",
+                  "value": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "newVnetSection",
+            "type": "Microsoft.Common.Section",
+            "label": "New Virtual Network Settings",
+            "visible": "[not(steps('networkConfig').useExistingVnet)]",
+            "elements": [
+              {
+                "name": "vnetAddressSpace",
+                "type": "Microsoft.Common.TextBox",
+                "label": "VNet Address Space",
+                "defaultValue": "10.0.0.0/16",
+                "toolTip": "Address space for the new virtual network in CIDR notation",
+                "constraints": {
+                  "required": true,
+                  "regex": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(\\d|[1-2]\\d|3[0-2]))$",
+                  "validationMessage": "Must be a valid CIDR notation (e.g., 10.0.0.0/16)"
+                }
+              },
+              {
+                "name": "subnetAddressPrefix",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Subnet Address Prefix",
+                "defaultValue": "10.0.1.0/24",
+                "toolTip": "Address prefix for the AVD subnet in CIDR notation",
+                "constraints": {
+                  "required": true,
+                  "regex": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(\\d|[1-2]\\d|3[0-2]))$",
+                  "validationMessage": "Must be a valid CIDR notation (e.g., 10.0.1.0/24)"
+                }
+              }
+            ]
+          },
+          {
+            "name": "existingVnetSection",
+            "type": "Microsoft.Common.Section",
+            "label": "Existing Virtual Network Settings",
+            "visible": "[steps('networkConfig').useExistingVnet]",
+            "elements": [
+              {
+                "name": "existingVnetSelector",
+                "type": "Microsoft.Solutions.ResourceSelector",
+                "label": "Select existing Virtual Network",
+                "resourceType": "Microsoft.Network/virtualNetworks",
+                "options": {
+                  "filter": {
+                    "subscription": "onBasics",
+                    "location": "onBasics"
+                  }
+                }
+              },
+              {
+                "name": "createNewSubnet",
+                "type": "Microsoft.Common.OptionsGroup",
+                "label": "Subnet Configuration",
+                "defaultValue": "Create new subnet",
+                "toolTip": "Choose to create a new subnet or use an existing one in the selected VNet",
+                "constraints": {
+                  "required": true,
+                  "allowedValues": [
+                    {
+                      "label": "Create new subnet",
+                      "value": true
+                    },
+                    {
+                      "label": "Use existing subnet",
+                      "value": false
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "newSubnetPrefix",
+                "type": "Microsoft.Common.TextBox",
+                "label": "New Subnet Address Prefix",
+                "defaultValue": "10.0.5.0/24",
+                "visible": "[steps('networkConfig').existingVnetSection.createNewSubnet]",
+                "toolTip": "Address prefix for the new AVD subnet in the existing VNet",
+                "constraints": {
+                  "required": true,
+                  "regex": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(\\d|[1-2]\\d|3[0-2]))$",
+                  "validationMessage": "Must be a valid CIDR notation (e.g., 10.0.5.0/24)"
+                }
+              },
+              {
+                "name": "existingSubnetSelector",
+                "type": "Microsoft.Solutions.ResourceSelector",
+                "label": "Select existing Subnet",
+                "visible": "[not(steps('networkConfig').existingVnetSection.createNewSubnet)]",
+                "resourceType": "Microsoft.Network/virtualNetworks/subnets",
+                "options": {
+                  "filter": {
+                    "subscription": "onBasics",
+                    "location": "onBasics"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "sessionHosts",
+        "label": "Session Hosts",
+        "elements": [
+          {
+            "name": "sessionHostInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": true,
+            "options": {
+              "icon": "Info",
+              "text": "Configure the number and size of session hosts for your AVD deployment. Session hosts are the VMs that users will connect to."
+            }
+          },
+          {
+            "name": "sessionHostCount",
+            "type": "Microsoft.Common.Slider",
+            "min": 1,
+            "max": 20,
+            "label": "Number of Session Hosts",
+            "defaultValue": 2,
+            "showStepMarkers": true,
+            "toolTip": "Number of session host VMs to deploy (can add more later)",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "vmSize",
+            "type": "Microsoft.Compute.SizeSelector",
+            "label": "Session Host VM Size",
+            "toolTip": "Size of the virtual machines for session hosts",
+            "recommendedSizes": [
+              "Standard_D4s_v5",
+              "Standard_D8s_v5",
+              "Standard_E4s_v5"
+            ],
+            "constraints": {
+              "allowedSizes": [
+                "Standard_D2s_v5",
+                "Standard_D4s_v5",
+                "Standard_D8s_v5",
+                "Standard_D16s_v5",
+                "Standard_E4s_v5",
+                "Standard_E8s_v5"
+              ]
+            },
+            "osPlatform": "Windows",
+            "count": "[steps('sessionHosts').sessionHostCount]"
+          },
+          {
+            "name": "adminCredentials",
+            "type": "Microsoft.Common.Section",
+            "label": "Local Administrator Credentials",
+            "elements": [
+              {
+                "name": "adminUsername",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Admin Username",
+                "defaultValue": "avdadmin",
+                "toolTip": "Local administrator username for session hosts",
+                "constraints": {
+                  "required": true,
+                  "regex": "^[a-zA-Z][a-zA-Z0-9]{2,15}$",
+                  "validationMessage": "Username must be 3-16 characters, start with a letter, and contain only letters and numbers"
+                }
+              },
+              {
+                "name": "adminPassword",
+                "type": "Microsoft.Common.PasswordBox",
+                "label": {
+                  "password": "Admin Password",
+                  "confirmPassword": "Confirm Password"
+                },
+                "toolTip": "Local administrator password for session hosts",
+                "constraints": {
+                  "required": true,
+                  "regex": "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{12,}$",
+                  "validationMessage": "Password must be at least 12 characters with uppercase, lowercase, number, and special character"
+                },
+                "options": {
+                  "hideConfirmation": false
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "hostPool",
+        "label": "Host Pool Configuration",
+        "elements": [
+          {
+            "name": "hostPoolInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": true,
+            "options": {
+              "icon": "Info",
+              "text": "Configure the AVD host pool settings. Pooled mode allows multiple users per VM, while Personal mode assigns one VM per user."
+            }
+          },
+          {
+            "name": "hostPoolType",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Host Pool Type",
+            "defaultValue": "Pooled",
+            "toolTip": "Pooled: Multiple users share VMs. Personal: Each user gets their own VM",
+            "constraints": {
+              "required": true,
+              "allowedValues": [
+                {
+                  "label": "Pooled (Multiple users per VM)",
+                  "value": "Pooled"
+                },
+                {
+                  "label": "Personal (One user per VM)",
+                  "value": "Personal"
+                }
+              ]
+            }
+          },
+          {
+            "name": "loadBalancerType",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Load Balancing Algorithm",
+            "defaultValue": "BreadthFirst",
+            "visible": "[equals(steps('hostPool').hostPoolType, 'Pooled')]",
+            "toolTip": "BreadthFirst: Distribute users evenly. DepthFirst: Fill one VM before moving to next",
+            "constraints": {
+              "required": true,
+              "allowedValues": [
+                {
+                  "label": "Breadth First (Distribute evenly)",
+                  "value": "BreadthFirst"
+                },
+                {
+                  "label": "Depth First (Fill VMs sequentially)",
+                  "value": "DepthFirst"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "tags",
+        "label": "Tags",
+        "elements": [
+          {
+            "name": "tagsByResource",
+            "type": "Microsoft.Common.TagsByResource",
+            "resources": [
+              "Microsoft.DesktopVirtualization/hostpools",
+              "Microsoft.DesktopVirtualization/workspaces",
+              "Microsoft.DesktopVirtualization/applicationgroups",
+              "Microsoft.Compute/virtualMachines",
+              "Microsoft.Network/virtualNetworks",
+              "Microsoft.Storage/storageAccounts",
+              "Microsoft.KeyVault/vaults",
+              "Microsoft.OperationalInsights/workspaces"
+            ]
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "location": "[location()]",
+      "resourcePrefix": "[basics('resourcePrefix')]",
+      "environment": "[basics('environment')]",
+      "domainJoinOption": "[steps('identityConfig').domainJoinOption]",
+      "domainFqdn": "[if(equals(steps('identityConfig').domainJoinOption, 'DomainServices'), steps('identityConfig').domainServicesSection.domainFqdn, '')]",
+      "domainJoinUsername": "[if(equals(steps('identityConfig').domainJoinOption, 'DomainServices'), steps('identityConfig').domainServicesSection.domainJoinUsername, '')]",
+      "domainJoinPassword": "[if(equals(steps('identityConfig').domainJoinOption, 'DomainServices'), steps('identityConfig').domainServicesSection.domainJoinPassword, '')]",
+      "ouPath": "[if(equals(steps('identityConfig').domainJoinOption, 'DomainServices'), steps('identityConfig').domainServicesSection.ouPath, '')]",
+      "useExistingVnet": "[steps('networkConfig').useExistingVnet]",
+      "existingVnetName": "[if(steps('networkConfig').useExistingVnet, last(split(steps('networkConfig').existingVnetSection.existingVnetSelector.id, '/')), '')]",
+      "existingVnetResourceGroup": "[if(steps('networkConfig').useExistingVnet, first(skip(split(steps('networkConfig').existingVnetSection.existingVnetSelector.id, '/'), 4)), resourceGroup().name)]",
+      "createNewSubnet": "[if(steps('networkConfig').useExistingVnet, steps('networkConfig').existingVnetSection.createNewSubnet, true)]",
+      "existingSubnetName": "[if(and(steps('networkConfig').useExistingVnet, not(steps('networkConfig').existingVnetSection.createNewSubnet)), last(split(steps('networkConfig').existingVnetSection.existingSubnetSelector.id, '/')), '')]",
+      "vnetAddressSpace": "[if(steps('networkConfig').useExistingVnet, '', steps('networkConfig').newVnetSection.vnetAddressSpace)]",
+      "subnetAddressPrefix": "[if(steps('networkConfig').useExistingVnet, if(steps('networkConfig').existingVnetSection.createNewSubnet, steps('networkConfig').existingVnetSection.newSubnetPrefix, ''), steps('networkConfig').newVnetSection.subnetAddressPrefix)]",
+      "sessionHostCount": "[steps('sessionHosts').sessionHostCount]",
+      "vmSize": "[steps('sessionHosts').vmSize]",
+      "adminUsername": "[steps('sessionHosts').adminCredentials.adminUsername]",
+      "adminPassword": "[steps('sessionHosts').adminCredentials.adminPassword]",
+      "hostPoolType": "[steps('hostPool').hostPoolType]",
+      "loadBalancerType": "[if(equals(steps('hostPool').hostPoolType, 'Pooled'), steps('hostPool').loadBalancerType, 'BreadthFirst')]"
+    }
+  }
+}
