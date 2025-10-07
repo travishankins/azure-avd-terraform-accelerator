@@ -617,7 +617,7 @@
       "backupRetentionDays": "[if(steps('productionFeatures').backupSection.enableBackup, steps('productionFeatures').backupSection.backupRetentionDays, 30)]",
       "enableImageGallery": "[steps('productionFeatures').imageGallerySection.enableImageGallery]",
       "enablePolicies": "[steps('productionFeatures').policySection.enablePolicies]",
-      "policyAllowedVmSizes": "[if(steps('productionFeatures').policySection.enablePolicies, steps('productionFeatures').policySection.policyAllowedVmSizes, createArray('Standard_D2s_v5', 'Standard_D4s_v5'))]"
+      "policyAllowedVmSizes": "[if(steps('productionFeatures').policySection.enablePolicies, steps('productionFeatures').policySection.policyAllowedVmSizes, parse('[\"Standard_D2s_v5\",\"Standard_D4s_v5\"]'))]"
     }
   }
 }
