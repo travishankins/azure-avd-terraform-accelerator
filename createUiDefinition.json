@@ -450,6 +450,127 @@
         ]
       },
       {
+        "name": "productionFeatures",
+        "label": "Production Features (Optional)",
+        "elements": [
+          {
+            "name": "featuresInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": true,
+            "options": {
+              "icon": "Info",
+              "text": "These optional features enhance your deployment with enterprise capabilities: Backup provides disaster recovery, Image Gallery enables golden images, and Policies enforce governance. All features are optional and can be enabled later."
+            }
+          },
+          {
+            "name": "backupSection",
+            "type": "Microsoft.Common.Section",
+            "label": "Azure Backup",
+            "elements": [
+              {
+                "name": "enableBackup",
+                "type": "Microsoft.Common.CheckBox",
+                "label": "Enable Azure Backup for session hosts",
+                "toolTip": "Automatically backup session host VMs for disaster recovery. Recommended for production environments.",
+                "defaultValue": false
+              },
+              {
+                "name": "backupInfo",
+                "type": "Microsoft.Common.InfoBox",
+                "visible": "[steps('productionFeatures').backupSection.enableBackup]",
+                "options": {
+                  "icon": "Info",
+                  "text": "Backup will create a Recovery Services Vault and automatically protect all session hosts. Daily backups run at 2:00 AM UTC. Estimated cost: $10-30 per VM per month."
+                }
+              },
+              {
+                "name": "backupRetentionDays",
+                "type": "Microsoft.Common.Slider",
+                "min": 7,
+                "max": 180,
+                "label": "Daily Backup Retention (days)",
+                "defaultValue": 30,
+                "showStepMarkers": false,
+                "toolTip": "Number of days to retain daily backups",
+                "visible": "[steps('productionFeatures').backupSection.enableBackup]"
+              }
+            ]
+          },
+          {
+            "name": "imageGallerySection",
+            "type": "Microsoft.Common.Section",
+            "label": "Shared Image Gallery",
+            "elements": [
+              {
+                "name": "enableImageGallery",
+                "type": "Microsoft.Common.CheckBox",
+                "label": "Enable Shared Image Gallery for golden images",
+                "toolTip": "Create a gallery to store and version custom VM images. Recommended for standardized deployments.",
+                "defaultValue": false
+              },
+              {
+                "name": "imageGalleryInfo",
+                "type": "Microsoft.Common.InfoBox",
+                "visible": "[steps('productionFeatures').imageGallerySection.enableImageGallery]",
+                "options": {
+                  "icon": "Info",
+                  "text": "Image Gallery will be created with Windows 11 Multi-Session definition. Build custom images later using Azure Image Builder or manually. Use golden images to deploy session hosts with pre-installed applications and configurations. Estimated cost: $5 per month."
+                }
+              }
+            ]
+          },
+          {
+            "name": "policySection",
+            "type": "Microsoft.Common.Section",
+            "label": "Azure Policy Governance",
+            "elements": [
+              {
+                "name": "enablePolicies",
+                "type": "Microsoft.Common.CheckBox",
+                "label": "Enable Azure Policy for governance and compliance",
+                "toolTip": "Apply governance policies to enforce standards. Policies are free and highly recommended.",
+                "defaultValue": false
+              },
+              {
+                "name": "policyInfo",
+                "type": "Microsoft.Common.InfoBox",
+                "visible": "[steps('productionFeatures').policySection.enablePolicies]",
+                "options": {
+                  "icon": "Info",
+                  "text": "The following policies will be applied: Require Managed Disks, Restrict VM Sizes, Require Environment Tag. These policies help maintain compliance and prevent configuration drift. No additional cost."
+                }
+              },
+              {
+                "name": "policyAllowedVmSizes",
+                "type": "Microsoft.Common.DropDown",
+                "label": "Allowed VM Sizes",
+                "placeholder": "Select allowed VM sizes",
+                "multiselect": true,
+                "selectAll": true,
+                "filter": true,
+                "filterPlaceholder": "Filter sizes...",
+                "defaultValue": ["Standard_D2s_v5", "Standard_D4s_v5", "Standard_D8s_v5", "Standard_D16s_v5"],
+                "toolTip": "Select which VM sizes are allowed for deployment",
+                "visible": "[steps('productionFeatures').policySection.enablePolicies]",
+                "constraints": {
+                  "allowedValues": [
+                    { "label": "Standard_D2s_v5 (2 vCPU, 8 GB)", "value": "Standard_D2s_v5" },
+                    { "label": "Standard_D4s_v5 (4 vCPU, 16 GB)", "value": "Standard_D4s_v5" },
+                    { "label": "Standard_D8s_v5 (8 vCPU, 32 GB)", "value": "Standard_D8s_v5" },
+                    { "label": "Standard_D16s_v5 (16 vCPU, 64 GB)", "value": "Standard_D16s_v5" },
+                    { "label": "Standard_D2ds_v5 (2 vCPU, 8 GB)", "value": "Standard_D2ds_v5" },
+                    { "label": "Standard_D4ds_v5 (4 vCPU, 16 GB)", "value": "Standard_D4ds_v5" },
+                    { "label": "Standard_D8ds_v5 (8 vCPU, 32 GB)", "value": "Standard_D8ds_v5" },
+                    { "label": "Standard_D16ds_v5 (16 vCPU, 64 GB)", "value": "Standard_D16ds_v5" }
+                  ],
+                  "required": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
         "name": "tags",
         "label": "Tags",
         "elements": [
@@ -491,7 +612,12 @@
       "adminUsername": "[steps('sessionHosts').adminCredentials.adminUsername]",
       "adminPassword": "[steps('sessionHosts').adminCredentials.adminPassword]",
       "hostPoolType": "[steps('hostPool').hostPoolType]",
-      "loadBalancerType": "[if(equals(steps('hostPool').hostPoolType, 'Pooled'), steps('hostPool').loadBalancerType, 'BreadthFirst')]"
+      "loadBalancerType": "[if(equals(steps('hostPool').hostPoolType, 'Pooled'), steps('hostPool').loadBalancerType, 'BreadthFirst')]",
+      "enableBackup": "[steps('productionFeatures').backupSection.enableBackup]",
+      "backupRetentionDays": "[if(steps('productionFeatures').backupSection.enableBackup, steps('productionFeatures').backupSection.backupRetentionDays, 30)]",
+      "enableImageGallery": "[steps('productionFeatures').imageGallerySection.enableImageGallery]",
+      "enablePolicies": "[steps('productionFeatures').policySection.enablePolicies]",
+      "policyAllowedVmSizes": "[if(steps('productionFeatures').policySection.enablePolicies, steps('productionFeatures').policySection.policyAllowedVmSizes, createArray('Standard_D2s_v5', 'Standard_D4s_v5'))]"
     }
   }
 }

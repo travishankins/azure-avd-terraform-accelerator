@@ -252,6 +252,78 @@ module "compute" {
   depends_on = [module.avd]
 }
 
+# Backup Module (Azure Backup for Session Hosts)
+module "backup" {
+  source = "./modules/backup"
+  
+  enable_backup           = var.enable_backup
+  recovery_vault_name     = "${local.resource_prefix}-rsv-${local.unique_suffix}"
+  resource_group_name     = azurerm_resource_group.main.name
+  location                = azurerm_resource_group.main.location
+  
+  # Backup schedule
+  backup_frequency        = var.backup_frequency
+  backup_time             = var.backup_time
+  backup_timezone         = var.backup_timezone
+  backup_weekdays         = var.backup_weekdays
+  
+  # Retention policies
+  daily_retention_count   = var.backup_daily_retention_count
+  weekly_retention_count  = var.backup_weekly_retention_count
+  monthly_retention_count = var.backup_monthly_retention_count
+  yearly_retention_count  = var.backup_yearly_retention_count
+  
+  # VMs to protect
+  vm_ids = var.enable_backup ? module.compute.session_host_ids : []
+  
+  tags = local.common_tags
+  
+  depends_on = [module.compute]
+}
+
+# Image Gallery Module (Shared Image Gallery for Golden Images)
+module "image_gallery" {
+  source = "./modules/image_gallery"
+  
+  enable_image_gallery       = var.enable_image_gallery
+  gallery_name               = replace("${local.resource_prefix}_sig_${local.unique_suffix}", "-", "_")
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = azurerm_resource_group.main.location
+  gallery_description        = "AVD Golden Images for ${var.resource_prefix} Environment"
+  
+  # Image definitions
+  create_win11_definition    = var.create_win11_image_definition
+  create_win10_definition    = var.create_win10_image_definition
+  win11_image_name           = "win11-multisession-avd"
+  win10_image_name           = "win10-multisession-avd"
+  
+  # CI/CD integration
+  image_builder_principal_id = var.image_builder_principal_id
+  
+  tags = local.common_tags
+}
+
+# Policy Module (Azure Policy for Governance)
+module "policy" {
+  source = "./modules/policy"
+  
+  enable_policies            = var.enable_policies
+  resource_group_id          = azurerm_resource_group.main.id
+  location                   = azurerm_resource_group.main.location
+  
+  # Governance policies
+  require_environment_tag    = var.policy_require_environment_tag
+  allowed_vm_sizes           = var.policy_allowed_vm_sizes
+  
+  # Security policies
+  deploy_antimalware         = var.policy_deploy_antimalware
+  audit_disk_encryption      = var.policy_audit_disk_encryption
+  
+  # Monitoring policies
+  enable_vm_diagnostics      = var.policy_enable_vm_diagnostics
+  log_analytics_workspace_id = var.policy_enable_vm_diagnostics ? module.monitoring.log_analytics_workspace_id : ""
+}
+
 # Diagnostic Settings for AVD Resources
 resource "azurerm_monitor_diagnostic_setting" "avd_workspace" {
   count                      = var.enable_monitoring ? 1 : 0

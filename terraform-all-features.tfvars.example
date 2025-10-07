@@ -1,0 +1,170 @@
+# ===============================================================================
+# Example: Production AVD Deployment with ALL Features Enabled
+# ===============================================================================
+# This example enables backup, image gallery, and Azure Policy modules
+# Copy to terraform.tfvars and customize for your environment
+
+# ==============================================================================
+# BASIC CONFIGURATION
+# ==============================================================================
+resource_prefix = "avd-prod"
+environment     = "Production"
+location        = "eastus"
+
+# ==============================================================================
+# SESSION HOSTS
+# ==============================================================================
+session_host_count = 5
+vm_sku_size        = "Standard_D4s_v5"
+vm_admin_username  = "avdadmin"
+availability_zones = ["1", "2", "3"]
+
+# ==============================================================================
+# DOMAIN JOIN
+# ==============================================================================
+# Option 1: Azure AD Join (Recommended for cloud-only)
+domain_join_option = "AzureAD"
+
+# Option 2: Active Directory Domain Services Join
+# domain_join_option   = "DomainServices"
+# domain_name          = "contoso.com"
+# domain_join_username = "domainadmin@contoso.com"
+# domain_join_password = "YourSecurePassword123!"
+# domain_ou_path       = "OU=AVD,OU=Computers,DC=contoso,DC=com"
+
+# ==============================================================================
+# BACKUP (New Module - Recommended for Production) ⭐
+# ==============================================================================
+enable_backup = true
+
+# Backup schedule
+backup_frequency = "Daily"
+backup_time      = "02:00"
+backup_timezone  = "Eastern Standard Time"
+
+# Retention policy
+backup_daily_retention_count   = 30    # Keep 30 days
+backup_weekly_retention_count  = 12    # Keep 12 weeks
+backup_monthly_retention_count = 12    # Keep 12 months
+backup_yearly_retention_count  = 5     # Keep 5 years
+
+# ==============================================================================
+# SHARED IMAGE GALLERY (New Module - Recommended for Production) ⭐
+# ==============================================================================
+enable_image_gallery = true
+
+# Create image definitions
+create_win11_image_definition = true
+create_win10_image_definition = false
+
+# CI/CD Integration (optional)
+# Get this by running: az ad sp show --id <service-principal-id> --query id -o tsv
+# image_builder_principal_id = "00000000-0000-0000-0000-000000000000"
+
+# ==============================================================================
+# AZURE POLICY (New Module - Recommended for Production) ⭐
+# ==============================================================================
+enable_policies = true
+
+# Governance policies
+policy_require_environment_tag = true
+policy_allowed_vm_sizes = [
+  "Standard_D2s_v5",
+  "Standard_D4s_v5",
+  "Standard_D8s_v5",
+  "Standard_D16s_v5"
+]
+
+# Security policies
+policy_deploy_antimalware    = true
+policy_audit_disk_encryption = true
+
+# Monitoring policies
+policy_enable_vm_diagnostics = true
+
+# ==============================================================================
+# MONITORING
+# ==============================================================================
+enable_monitoring        = true
+enable_dependency_agent  = true
+enable_metric_alerts     = true
+notification_emails      = ["avd-admins@contoso.com"]
+
+# ==============================================================================
+# SCALING
+# ==============================================================================
+enable_scaling_plan    = true
+scaling_plan_time_zone = "Eastern Standard Time"
+
+scaling_plan_schedules = [
+  {
+    name                                 = "Weekday"
+    days_of_week                        = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    ramp_up_start_time                  = "07:00"
+    ramp_up_load_balancing_algorithm    = "BreadthFirst"
+    ramp_up_minimum_hosts_percent       = 20
+    ramp_up_capacity_threshold_percent  = 60
+    peak_start_time                     = "09:00"
+    peak_load_balancing_algorithm       = "DepthFirst"
+    ramp_down_start_time                = "17:00"
+    ramp_down_load_balancing_algorithm  = "DepthFirst"
+    ramp_down_minimum_hosts_percent     = 10
+    ramp_down_capacity_threshold_percent = 90
+    ramp_down_force_logoff_users        = false
+    ramp_down_stop_hosts_when           = "ZeroSessions"
+    ramp_down_wait_time_minutes         = 30
+    ramp_down_notification_message      = "You will be logged off in 30 minutes. Please save your work."
+    off_peak_start_time                 = "19:00"
+    off_peak_load_balancing_algorithm   = "DepthFirst"
+  }
+]
+
+# ==============================================================================
+# AUTO-SHUTDOWN (Cost Optimization for Dev/Test)
+# ==============================================================================
+# Disable for production, enable for dev/test
+enable_auto_shutdown                = false
+auto_shutdown_time                  = "19:00"
+auto_shutdown_timezone              = "Eastern Standard Time"
+auto_shutdown_notification_enabled  = true
+auto_shutdown_notification_email    = "avd-admins@contoso.com"
+
+# ==============================================================================
+# NETWORKING
+# ==============================================================================
+# Option 1: Create new VNet
+use_existing_vnet   = false
+vnet_address_space  = ["10.100.0.0/16"]
+subnet_address_prefixes = ["10.100.1.0/24"]
+
+# Option 2: Use existing VNet
+# use_existing_vnet             = true
+# existing_vnet_name            = "vnet-production"
+# existing_vnet_resource_group  = "rg-networking"
+# create_new_subnet             = true
+# subnet_address_prefixes       = ["10.0.5.0/24"]
+
+# Option 3: Use existing VNet and existing subnet
+# use_existing_vnet             = true
+# existing_vnet_name            = "vnet-production"
+# existing_vnet_resource_group  = "rg-networking"
+# create_new_subnet             = false
+# existing_subnet_name          = "snet-avd"
+
+# ==============================================================================
+# STORAGE (FSLogix Profiles)
+# ==============================================================================
+storage_account_tier         = "Premium"
+storage_account_replication_type = "LRS"
+fslogix_storage_quota_gb     = 1024
+storage_enable_private_endpoint = true
+
+# ==============================================================================
+# TAGS
+# ==============================================================================
+tags = {
+  CostCenter  = "IT"
+  Owner       = "AVD Team"
+  Criticality = "High"
+  Compliance  = "SOC2"
+}
