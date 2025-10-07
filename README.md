@@ -249,23 +249,6 @@ existing_subnet_name           = "avd-subnet"
 - Hybrid identity scenarios
 - Applications requiring domain authentication
 - Environments with Group Policy dependencies
-
----
-
-#### **Comparison: Azure AD Join vs. Domain Services Join**
-
-| Feature | Azure AD Join | Domain Services Join |
-|---------|---------------|---------------------|
-| **Cloud-Native** | ✅ Yes | ❌ No (Hybrid) |
-| **On-Premises Infrastructure** | ❌ Not Required | ✅ Required |
-| **Conditional Access** | ✅ Full Support | ⚠️ Limited |
-| **Windows Hello for Business** | ✅ Yes | ✅ Yes |
-| **Group Policy** | ⚠️ Limited (Intune) | ✅ Full Support |
-| **Legacy App Support** | ⚠️ Limited | ✅ Full Support |
-| **Network Requirements** | ✅ Minimal | ⚠️ DC Connectivity Required |
-| **Management Complexity** | ✅ Simple | ⚠️ More Complex |
-| **Cost** | ✅ Lower | ⚠️ Higher (Network, DCs) |
-
 ---
 
 ### Session Host Configuration
